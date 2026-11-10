@@ -1,0 +1,13 @@
+Clipboard/
+ClipboardTests/
+Clipboard.xcodeproj/
+clipboard-web/
+tooling/
+supabase/
+**/node_modules/
+**/.env*
+**/*.md
+web/web/
+web/tests/
+web/package*.json
+web/build.mjs

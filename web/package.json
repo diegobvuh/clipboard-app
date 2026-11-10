@@ -1,0 +1,14 @@
+{
+  "name": "clipboard-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.119.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.27.3"
+  }
+}

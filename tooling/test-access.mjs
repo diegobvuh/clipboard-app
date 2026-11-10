@@ -1,0 +1,96 @@
+import { PGlite } from '@electric-sql/pglite';
+import { readFile } from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const db = new PGlite();
+await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
+create schema auth; create table auth.identities(user_id uuid,provider text); create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
+create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+grant usage on schema auth to anon,authenticated,service_role;
+grant execute on function auth.uid() to anon,authenticated,service_role;
+create schema storage;
+create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text);
+alter table storage.objects enable row level security;
+grant usage on schema storage to anon,authenticated;
+grant all on storage.objects to anon,authenticated;`);
+for (const file of ['202611100001_initial.sql','202611100002_business_access.sql','202611100003_photos_and_ai_limits.sql','202611100004_invitation_limits.sql','202611100005_google_onboarding.sql'])
+ await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+const owner='11111111-1111-4111-8111-111111111111', member='22222222-2222-4222-8222-222222222222', outsider='33333333-3333-4333-8333-333333333333';
+for(const [id,email] of [[owner,'owner@example.test'],[member,'member@example.test'],[outsider,'outsider@example.test']])
+ {await db.query('insert into auth.users values($1,$2,now())',[id,email]);await db.query("insert into auth.identities values($1,'google')",[id]);}
+let passed=0;
+async function as(role,user,sql,params=[]){
+ await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user||'']);
+ await db.exec('set role '+role);
+ try{return (await db.query(sql,params)).rows;}finally{await db.exec('reset role');}
+}
+async function allowed(label,fn){await fn();passed++;console.log('PASS',label);}
+async function denied(label,fn){await assert.rejects(fn);passed++;console.log('PASS',label);}
+const business=(await as('authenticated',owner,"select public.create_business('Test business') id"))[0].id;
+const other=(await as('authenticated',outsider,"select public.create_business('Other business') id"))[0].id;
+await allowed('owner membership created atomically',async()=>assert.equal((await as('authenticated',owner,'select * from public.business_members'))[0].role,'owner'));
+await denied('owner cannot create unlimited businesses',()=>as('authenticated',owner,"select public.create_business('Extra')"));
+const invite=(await as('authenticated',owner,'select public.invite_business_member($1,$2) id',[business,'member@example.test']))[0].id;
+await denied('wrong email cannot accept invitation',()=>as('authenticated',outsider,'select public.accept_business_invitation($1)',[invite]));
+await as('authenticated',member,'select public.accept_business_invitation($1)',[invite]);
+await denied('invitation cannot be reused',()=>as('authenticated',member,'select public.accept_business_invitation($1)',[invite]));
+const item=(await as('authenticated',owner,"insert into public.inventory_items(business_id,created_by,title) values($1,$2,'Jacket') returning id",[business,owner]))[0].id;
+await allowed('member can read shared inventory',async()=>assert.equal((await as('authenticated',member,'select * from public.inventory_items')).length,1));
+await allowed('unrelated user cannot read inventory',async()=>assert.equal((await as('authenticated',outsider,'select * from public.inventory_items')).length,0));
+await denied('unrelated user cannot insert into business',()=>as('authenticated',outsider,"insert into public.inventory_items(business_id,created_by,title) values($1,$2,'Bad')",[business,outsider]));
+await denied('member cannot forge inventory author',()=>as('authenticated',member,"insert into public.inventory_items(business_id,created_by,title) values($1,$2,'Bad')",[business,owner]));
+await allowed('member can edit shared inventory',async()=>assert.equal((await as('authenticated',member,"update public.inventory_items set title='Edited' where id=$1 returning id",[item])).length,1));
+await denied('member cannot move inventory to another business',()=>as('authenticated',member,'update public.inventory_items set business_id=$1 where id=$2',[other,item]));
+await denied('member cannot promote themselves',()=>as('authenticated',member,"update public.business_members set role='owner' where user_id=$1",[member]));
+await denied('member cannot change owner',()=>as('authenticated',member,'update public.businesses set owner_id=$1 where id=$2',[member,business]));
+await denied('member cannot invite',()=>as('authenticated',member,'select public.invite_business_member($1,$2)',[business,'other@example.test']));
+await denied('member cannot remove owner',()=>as('authenticated',member,'select public.remove_business_member($1,$2)',[business,owner]));
+await denied('owner cannot remove themselves',()=>as('authenticated',owner,'select public.remove_business_member($1,$2)',[business,owner]));
+await denied('anonymous database access denied',()=>as('anon',null,'select * from public.inventory_items'));
+await denied('anonymous business creation denied',()=>as('anon',null,"select public.create_business('Bad')"));
+const expired=(await as('authenticated',owner,'select public.invite_business_member($1,$2) id',[business,'member@example.test']))[0].id;
+await db.query("update public.business_invitations set expires_at=now()-interval '1 second' where id=$1",[expired]);
+await denied('expired invitation rejected',()=>as('authenticated',member,'select public.accept_business_invitation($1)',[expired]));
+const revoked=(await as('authenticated',owner,'select public.invite_business_member($1,$2) id',[business,'member@example.test']))[0].id;
+await as('authenticated',owner,'select public.revoke_business_invitation($1)',[revoked]);
+await denied('revoked invitation rejected',()=>as('authenticated',member,'select public.accept_business_invitation($1)',[revoked]));
+const path=`${business}/${item}/photo.jpg`;
+await as('authenticated',member,'insert into storage.objects(bucket_id,name) values($1,$2)',['garment-photos',path]);
+await allowed('member can read own business photos',async()=>assert.equal((await as('authenticated',member,'select * from storage.objects')).length,1));
+await allowed('outsider cannot read business photos',async()=>assert.equal((await as('authenticated',outsider,'select * from storage.objects')).length,0));
+await denied('outsider cannot upload business photos',()=>as('authenticated',outsider,'insert into storage.objects(bucket_id,name) values($1,$2)',['garment-photos',path]));
+await denied('member cannot bypass server AI quota reservation',()=>as('authenticated',member,'select public.reserve_ai_request($1,$2)',[business,member]));
+await as('service_role',null,'select public.reserve_ai_request($1,$2)',[business,member]);
+await denied('AI minute limit enforced',()=>as('service_role',null,'select public.reserve_ai_request($1,$2)',[business,member]));
+await denied('AI rejects unrelated business membership',()=>as('service_role',null,'select public.reserve_ai_request($1,$2)',[business,outsider]));
+await db.query('update private.ai_daily_usage set requests=20 where business_id=$1',[business]);
+await db.query("update private.ai_user_usage set last_request='epoch' where user_id=$1",[member]);
+await denied('business daily AI cap enforced',()=>as('service_role',null,'select public.reserve_ai_request($1,$2)',[business,member]));
+await as('authenticated',owner,'select public.remove_business_member($1,$2)',[business,member]);
+await allowed('removal blocks existing session inventory access',async()=>assert.equal((await as('authenticated',member,'select * from public.inventory_items')).length,0));
+await allowed('removal blocks existing session photo access',async()=>assert.equal((await as('authenticated',member,'select * from storage.objects')).length,0));
+await db.exec(await readFile(new URL('../supabase/migrations/202611100006_shared_workspace.sql',import.meta.url),'utf8'));
+const again=(await as('authenticated',owner,'select public.invite_business_member($1,$2) id',[business,'member@example.test']))[0].id;
+await allowed('pending invitation shown to matching Google account',async()=>assert.equal((await as('authenticated',member,'select * from public.my_business_invitations()')).length,1));
+await allowed('pending invitation hidden from unrelated account',async()=>assert.equal((await as('authenticated',outsider,'select * from public.my_business_invitations()')).length,0));
+await as('authenticated',member,'select public.accept_business_invitation($1)',[again]);
+await allowed('owner directory shows member emails',async()=>assert.equal((await as('authenticated',owner,'select * from public.business_member_directory($1)',[business])).length,2));
+await allowed('member cannot enumerate account emails',async()=>assert.equal((await as('authenticated',member,'select * from public.business_member_directory($1)',[business])).length,0));
+let snapshot=(await as('authenticated',member,'select public.load_business_workspace($1) value',[business]))[0].value;
+await allowed('shared workspace loads inventory',async()=>assert.equal(snapshot.state.items.length,1));
+snapshot.state.items[0].name='Cloud saved';
+const revision=(await as('authenticated',member,'select public.save_business_workspace($1,$2,$3) revision',[business,snapshot.revision,snapshot.state]))[0].revision;
+await allowed('member can save shared workspace atomically',async()=>assert.equal(Number(revision),1));
+await denied('stale save rejected without overwriting teammate',()=>as('authenticated',owner,'select public.save_business_workspace($1,$2,$3)',[business,0,snapshot.state]));
+await denied('outsider cannot load workspace',()=>as('authenticated',outsider,'select public.load_business_workspace($1)',[business]));
+await denied('outsider cannot save workspace',()=>as('authenticated',outsider,'select public.save_business_workspace($1,$2,$3)',[business,1,snapshot.state]));
+const foreign=structuredClone(snapshot.state);foreign.items[0].photos=[{path:other+'/'+item+'/photo.jpg'}];
+await denied('workspace rejects foreign photo references',()=>as('authenticated',member,'select public.save_business_workspace($1,$2,$3)',[business,1,foreign]));
+const embedded=structuredClone(snapshot.state);embedded.items[0].photos=[{path:business+'/'+item+'/photo.jpg',src:'data:image/jpeg;base64,private'}];
+await denied('workspace rejects embedded photo data',()=>as('authenticated',member,'select public.save_business_workspace($1,$2,$3)',[business,1,embedded]));
+await denied('direct inventory writes cannot bypass revision checks',()=>as('authenticated',member,"update public.inventory_items set title='bypass' where id=$1",[item]));
+await as('authenticated',owner,'select public.remove_business_member($1,$2)',[business,member]);
+await denied('removed member cannot load workspace',()=>as('authenticated',member,'select public.load_business_workspace($1)',[business]));
+await allowed('new businesses do not automatically enable billable AI',async()=>assert.equal((await as('authenticated',owner,'select ai_enabled from public.businesses where id=$1',[business]))[0].ai_enabled,false));
+console.log(`${passed} access checks passed on PostgreSQL (PGlite). No production test accounts created.`);
+await db.close();

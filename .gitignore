@@ -6,3 +6,10 @@ xcuserdata/
 .env
 .env.*
 !.env.example
+node_modules/
+dist/
+.openai/deploy-state.json
+.openai/portable-state.json
+.vercel
+.env*
+clipboard-web/.sites-runtime/

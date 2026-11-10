@@ -29,3 +29,21 @@ xcodebuild -project Clipboard.xcodeproj -scheme Clipboard -destination 'platform
 ```
 
 The app is independent and is not affiliated with Depop.
+
+## Shared web app
+
+The phone-friendly app lives in `web/` and is deployed at [Clipboard](https://clipboard-dashboard.vercel.app).
+
+- Google-only sign-in through Supabase, with individual logins.
+- Create one owned business and join other businesses through owner-created, email-bound invitations.
+- Owners invite/remove members in Team. Invitations appear in-app after the invitee signs in; no email is sent.
+- Inventory, trips, finances, preferences and private photos are business-scoped and stored in Supabase.
+- Saves reject stale workspace revisions instead of overwriting a teammate. Use Reload teammate updates to fetch newer records.
+- Inventory removal archives the database record; files are retained.
+- Settings provides a records export and explicit import of the older browser-only workspace into an empty business.
+
+Run `npm ci --prefix web`, `npm run build --prefix web`, then `python3 -m http.server 4173 --directory web`. The SDK browser bundle must exist at `web/vendor/supabase.js`. Local Google sign-in requires adding the exact local redirect in Supabase; production login returns to the deployed site. Local preview alone does not configure OAuth redirects.
+
+Run access tests with `npm ci --prefix tooling`, `node tooling/test-access.mjs`, and `node --test tooling/test-cloud-races.mjs`. Deploy the prebuilt static app using `vercel deploy --prod --scope private-poker-app` from the linked root checkout. `vercel.json` includes the production content security policy.
+
+The native Swift prototype remains device-local and is not automatically migrated. Earlier browser data stays in IndexedDB until explicitly imported. Export JSON references private image paths; it does not include image binaries. AI generation and Depop publishing are not connected. See [account setup](docs/ACCOUNT_STRUCTURE.md) and [Supabase setup](supabase/README.md).

@@ -56,6 +56,15 @@ export async function saveWorkspace(state){
  if(active?.id!==business)throw Error('The business changed during saving. Reload the workspace.');
  revision=next;
 }
+
+export async function generateDepopDraft(item){
+ if(!item?.id)throw Error('Save the piece before generating a draft.');
+ const photos=(item.photos||[]).filter(photo=>photo.path).slice(0,3).map(photo=>photo.path);
+ const {data,error}=await supabase.functions.invoke('clipboard-api',{body:{action:'draft',item_id:item.id,photos}});
+ if(error)throw error;
+ if(!data?.draft)throw Error('The assistant did not return a draft.');
+ return data;
+}
 export async function refreshImage(image,path){try{image.src=await signed(path);}catch{image.alt='Photo unavailable. Reload after checking your business access.';}}
 export async function exportBusiness(){
  if(!active)throw Error('Choose a business first.');

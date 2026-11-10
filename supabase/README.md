@@ -24,7 +24,7 @@ The `garment-photos` bucket is private, permits JPEG/PNG/WebP up to 5 MiB, and u
 
 ## Secrets and unfinished integrations
 
-`OPENAI_API_KEY` exists in Edge Function Secrets. Its value was not retrieved. `functions/clipboard-api/index.ts` is prepared source, **not deployed**, and is not called by this web app. `ai_enabled` defaults to false. AI limits are 20 attempts per business per UTC day, one per user per minute; these apply only once a protected server endpoint is deployed. No OpenAI charges were incurred by these checks.
+`OPENAI_API_KEY` exists in Edge Function Secrets. Its value was not retrieved. The protected `clipboard-api` Edge Function is deployed and the `vigilklinecollective` business has AI enabled. AI limits are 20 attempts per business per UTC day, one per user per minute. The app calls the function only from the saved-item “Generate Depop draft” action; it never publishes directly to Depop.
 
 Do not put service-role credentials, Google client secrets, or OpenAI keys in `web/`, Git, or browser settings. Only the Supabase publishable key is in the browser bundle.
 

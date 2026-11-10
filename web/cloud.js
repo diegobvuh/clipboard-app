@@ -7,7 +7,7 @@ export const currentBusiness=()=>active;
 export const blankState=()=>({items:[],sessions:[],expenses:[],settings:{measurement:'When asked',voice:''}});
 const check=({data,error})=>{if(error)throw error;return data};
 export const rpc=async(name,args)=>check(await supabase.rpc(name,args));
-export async function memberships(){return check(await supabase.from('businesses').select('id,name,depop_username,owner_id').order('created_at'));}
+export async function memberships(){return check(await supabase.from('businesses').select('id,name,depop_username,owner_id,ai_enabled').order('created_at'));}
 export async function setBusiness(business){contextVersion++;active=business;return loadWorkspace();}
 export function clearBusiness(){contextVersion++;active=null;revision=0;}
 export async function loadWorkspace(){if(!active)throw Error('Select a business first.');const businessId=active.id,context=contextVersion,load=++loadVersion;const data=await rpc('load_business_workspace',{business:businessId});const loaded=await hydrate(data.state);if(active?.id!==businessId||context!==contextVersion||load!==loadVersion)throw Error('The business changed while loading.');revision=data.revision;return loaded;}
@@ -61,7 +61,7 @@ export async function generateDepopDraft(item){
  if(!item?.id)throw Error('Save the piece before generating a draft.');
  const photos=(item.photos||[]).filter(photo=>photo.path).slice(0,3).map(photo=>photo.path);
  const {data,error}=await supabase.functions.invoke('clipboard-api',{body:{action:'draft',item_id:item.id,photos}});
- if(error)throw error;
+ if(error){let message=error.message;try{const body=await error.context?.json();message=body?.error||message;}catch{}throw Error(message);}
  if(!data?.draft)throw Error('The assistant did not return a draft.');
  return data;
 }

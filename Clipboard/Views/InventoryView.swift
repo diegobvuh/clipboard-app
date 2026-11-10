@@ -67,6 +67,7 @@ struct GarmentDetailView: View {
                         }
                     }
                 }
+                ForEach(garment.photos.filter { $0.role == "Tag" }.sorted { $0.order < $1.order }) { photo in RecognizeTextView(data: photo.data).id(photo.data) }
                 PhotoInput { data in let photo = GarmentPhoto(data: data, order: (garment.photos.map(\.order).max() ?? -1) + 1); photo.garment = garment; context.insert(photo) }
                 Text("Choose public photos for the listing. Keep tags and details as reference when needed.").font(.footnote).foregroundStyle(.secondary)
             } header: { Text("Photos") }

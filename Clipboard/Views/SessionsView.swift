@@ -58,7 +58,7 @@ struct SessionDetailView: View {
                 if !session.isComplete { Button { let item = Candidate(name: ""); item.session = session; context.insert(item); selected = item } label: { Label("Add a piece", systemImage: "plus") } }
             }
             Section("Receipt") {
-                if let data = session.receiptImage { PhotoThumbnail(data: data) }
+                if let data = session.receiptImage { PhotoThumbnail(data: data); RecognizeTextView(data: data).id(data) }
                 PhotoInput { session.receiptImage = $0 }
                 TextField("Receipt total", text: $receipt).keyboardType(.decimalPad).onChange(of: receipt) { _, value in if value.isEmpty { session.receiptTotal = nil } else if let amount = Money.parse(value) { session.receiptTotal = amount } }
                 if !receipt.isEmpty && Money.parse(receipt) == nil { Text("Enter a nonnegative amount.").font(.caption).foregroundStyle(.red) }
@@ -100,8 +100,8 @@ struct CandidateDetailView: View {
                 Picker("Decision", selection: $candidate.decision) { Text("Considering").tag("Considering"); Text("Purchased").tag("Purchased"); Text("Discarded").tag("Discarded") }
             }
             Section("Garment photo") { if let data = candidate.image { PhotoThumbnail(data: data) }; PhotoInput { candidate.image = $0 } }
-            Section("Price tag") { if let data = candidate.tagImage { PhotoThumbnail(data: data) }; PhotoInput { candidate.tagImage = $0 } }
-            Text("Enter the price from the tag. Automatic tag reading is not connected yet.").font(.footnote).foregroundStyle(.secondary)
+            Section("Price tag") { if let data = candidate.tagImage { PhotoThumbnail(data: data); RecognizeTextView(data: data).id(data) }; PhotoInput { candidate.tagImage = $0 } }
+            Text("Check the tag and enter the price. Text recognition may make mistakes.").font(.footnote).foregroundStyle(.secondary)
         }.navigationTitle(candidate.name.isEmpty ? "New piece" : candidate.name).navigationBarTitleDisplayMode(.inline)
             .onAppear { amount = candidate.price.map { NSDecimalNumber(decimal: $0).stringValue } ?? "" }
     }

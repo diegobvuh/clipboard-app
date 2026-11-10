@@ -52,3 +52,25 @@ struct PhotoThumbnail: View {
             .frame(width: 58, height: 70).clipped().background(.quaternary).clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
+
+struct RecognizeTextView: View {
+    let data: Data
+    @State private var text: String?
+    @State private var loading = false
+    @State private var error: String?
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                loading = true; error = nil; text = nil
+                Task {
+                    do { let result = try await TextRecognition.recognize(data); text = result.isEmpty ? "No readable text found. Try a clearer photo." : result }
+                    catch { self.error = "Couldn't read this photo. Try another one." }
+                    loading = false
+                }
+            } label: { if loading { ProgressView() } else { Label("Read text from photo", systemImage: "text.viewfinder") } }
+                .disabled(loading)
+            if let text { Text(text).textSelection(.enabled).font(.footnote); Text("Check the text against the photo before using it.").font(.caption).foregroundStyle(.secondary) }
+            if let error { Text(error).font(.footnote).foregroundStyle(.red) }
+        }
+    }
+}

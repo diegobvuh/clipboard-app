@@ -12,6 +12,7 @@
 		45B8F86B269183BCA3890B34 /* ClipboardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B4BBCC9D5930911C694CC4 /* ClipboardTests.swift */; };
 		6F8AFF4250A870A497828BB9 /* FinanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62A5B19045C51961026CCB16 /* FinanceView.swift */; };
 		7418052F04B9EED1B0B258D8 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E20CA3F107D4F393E4ACD892 /* Foundation.framework */; };
+		94552A9DB8D6E843C4212328 /* TextRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF0D5179D9CB265433B92770 /* TextRecognition.swift */; };
 		D3101A95FBF9AD6E7B46049C /* SessionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD71A520CCB6F76B98DC4B3 /* SessionsView.swift */; };
 		D53DC91A76D605D2220EFF23 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E20CA3F107D4F393E4ACD892 /* Foundation.framework */; };
 		FBD127384E0FD483D935DFC9 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D7A0D07455743D6FB2FA611 /* Models.swift */; };
@@ -38,6 +39,7 @@
 		8F0714A38B239446A7B27C4E /* Clipboard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Clipboard.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E20CA3F107D4F393E4ACD892 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		EAD971B57A70BF5B91D8F74F /* ClipboardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClipboardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EF0D5179D9CB265433B92770 /* TextRecognition.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TextRecognition.swift; path = Clipboard/Services/TextRecognition.swift; sourceTree = "<group>"; };
 		FBD71A520CCB6F76B98DC4B3 /* SessionsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SessionsView.swift; path = Clipboard/Views/SessionsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -94,8 +96,17 @@
 				12226402E4D2FEEA96C60947 /* App */,
 				804CFC76B0612EB395683A9E /* Models */,
 				2174979BB3B400E002DF02E1 /* Views */,
+				74D41A0CC6A0812E4FFFD726 /* Services */,
 			);
 			name = Clipboard;
+			sourceTree = "<group>";
+		};
+		74D41A0CC6A0812E4FFFD726 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				EF0D5179D9CB265433B92770 /* TextRecognition.swift */,
+			);
+			name = Services;
 			sourceTree = "<group>";
 		};
 		75A54C3C62A537FF04923EE2 /* iOS */ = {
@@ -245,6 +256,7 @@
 				0CA09DB57CAFE97904DD0EE1 /* InventoryView.swift in Sources */,
 				0F7CE5E1FD131E7D50BA267A /* PhotoInput.swift in Sources */,
 				D3101A95FBF9AD6E7B46049C /* SessionsView.swift in Sources */,
+				94552A9DB8D6E843C4212328 /* TextRecognition.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

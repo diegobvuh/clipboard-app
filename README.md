@@ -8,13 +8,14 @@ iPhone-first workspace for a resale shop. This repository currently contains an 
 - Take photos on a physical iPhone or import from the photo library. Mark listing versus reference photos and identify tag or flaw images.
 - Start thrift sessions, record candidate and price-tag photos and manually entered prices, mark decisions, store a receipt photo and total, and add purchased candidates to inventory.
 - Record expenses, sale proceeds and item costs; view item profit only for sales with all required amounts recorded. Shared expenses are shown separately.
+- Read text from tag and receipt photos on device for manual review; recognition does not automatically change amounts.
 - Save measurement and shop-voice preferences locally.
 
 Data is stored on the device with SwiftData. There are no accounts, backup, sync, or export; deleting the app can delete its data. Do not use this prototype as the only copy of important business records.
 
 ## Not implemented
 
-AI-generated descriptions, photo analysis, tag/receipt OCR, comparable-price research, chat or memory, cost allocation, Depop connection or automation, publishing, scheduling, message replies, social connections, analytics, subscriptions, server infrastructure, and multi-user support are not implemented. Manual statuses are not synced with Depop. See [the product plan](Clipboard_Full_Product_and_Implementation_Plan.md) for the intended scope and integration dependencies.
+AI-generated descriptions, photo analysis, automatic tag/receipt field extraction, comparable-price research, chat or memory, cost allocation, Depop connection or automation, publishing, scheduling, message replies, social connections, analytics, subscriptions, server infrastructure, and multi-user support are not implemented. Manual statuses are not synced with Depop. See [the product plan](Clipboard_Full_Product_and_Implementation_Plan.md) for the intended scope and integration dependencies.
 
 ## Run
 

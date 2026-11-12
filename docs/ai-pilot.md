@@ -1,6 +1,6 @@
 # Shared AI pilot: implementation and release status
 
-This document describes local changes, not a claim that they are deployed or verified with live accounts. Apply the AI usage migration and deploy the `clipboard-api` Edge Function before deploying the updated web client; the old function does not support the new request contract. Do not deploy either half alone to production.
+On November 11, 2026, the AI usage SQL, `clipboard-api` function, and web client were deployed to production. An authenticated assistant test reached OpenAI but failed; the exact provider error was not exposed, so billing, model access and the saved credential remain unverified. The new SQL was applied directly because production migration history was empty even though the prior schema was already present. Do not run a normal migration push until that history has been reconciled.
 
 The shared web workspace keeps assistant messages, item suggestions, and pending listing drafts in its existing business-scoped versioned workspace. Team members can see these records. A listing draft is separate from the item until applied, and an item suggestion must be approved. A changed item or a concurrent workspace save prevents stale application. AI cannot publish or send messages. Existing workspace size and revision limits also apply to shared AI history.
 

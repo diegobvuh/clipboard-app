@@ -57,13 +57,17 @@ export async function saveWorkspace(state){
  revision=next;
 }
 
-export async function generateDepopDraft(item){
- if(!item?.id)throw Error('Save the piece before generating a draft.');
- const photos=(item.photos||[]).filter(photo=>photo.path).slice(0,3).map(photo=>photo.path);
- const {data,error}=await supabase.functions.invoke('clipboard-api',{body:{action:'draft',item_id:item.id,photos}});
+export async function requestAI(action, payload={}){
+ if(!active)throw Error('Select a business first.');
+ const business=active.id,context=contextVersion;
+ const {data,error}=await supabase.functions.invoke('clipboard-api',{body:{action,business_id:business,...payload}});
+ if(active?.id!==business||context!==contextVersion)throw Error('The business changed during this request.');
  if(error){let message=error.message;try{const body=await error.context?.json();message=body?.error||message;}catch{}throw Error(message);}
- if(!data?.draft)throw Error('The assistant did not return a draft.');
  return data;
+}
+export async function generateDepopDraft(item,photos){
+ if(!item?.id)throw Error('Save the piece before generating a draft.');
+ return requestAI('draft',{item_id:item.id,photos:photos||[]});
 }
 export async function refreshImage(image,path){try{image.src=await signed(path);}catch{image.alt='Photo unavailable. Reload after checking your business access.';}}
 export async function exportBusiness(){

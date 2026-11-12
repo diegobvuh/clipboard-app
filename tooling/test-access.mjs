@@ -92,5 +92,14 @@ await denied('direct inventory writes cannot bypass revision checks',()=>as('aut
 await as('authenticated',owner,'select public.remove_business_member($1,$2)',[business,member]);
 await denied('removed member cannot load workspace',()=>as('authenticated',member,'select public.load_business_workspace($1)',[business]));
 await allowed('new businesses do not automatically enable billable AI',async()=>assert.equal((await as('authenticated',owner,'select ai_enabled from public.businesses where id=$1',[business]))[0].ai_enabled,false));
+await db.exec(await readFile(new URL('../supabase/migrations/202611110001_ai_usage.sql',import.meta.url),'utf8'));
+await db.query('update public.businesses set ai_enabled=true where id=$1',[business]);
+await db.query('delete from private.ai_daily_usage where business_id=$1',[business]);
+await denied('client cannot reserve AI usage directly',()=>as('authenticated',owner,"select public.reserve_ai_pilot($1,$2,'draft')",[business,owner]));
+await denied('AI reservation rejects outsider',()=>as('service_role',null,"select public.reserve_ai_pilot($1,$2,'draft')",[business,outsider]));
+await allowed('AI reservation counts per feature',async()=>{await as('service_role',null,"select public.reserve_ai_pilot($1,$2,'draft')",[business,owner]);const usage=(await as('authenticated',owner,'select public.ai_pilot_usage($1) usage',[business]))[0].usage;assert.equal(usage.reserved_cents,10);assert.equal(usage.features.draft.requests,1);});
+await denied('outsider cannot inspect AI usage',()=>as('authenticated',outsider,'select public.ai_pilot_usage($1)',[business]));
+await db.query('update private.ai_monthly_usage set reserved_cents=1995 where business_id=$1',[business]);
+await denied('monthly reservation ceiling enforced',()=>as('service_role',null,"select public.reserve_ai_pilot($1,$2,'draft')",[business,owner]));
 console.log(`${passed} access checks passed on PostgreSQL (PGlite). No production test accounts created.`);
 await db.close();
